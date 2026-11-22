@@ -1,0 +1,36 @@
+# Service definition to run behind Traefik, or to copy into a larger stack.
+# Also add `dubstick_data:` under `volumes:` and mount it into `backup`:
+#   - dubstick_data:/backup/dubstick_data:ro
+services:
+  dubstick:
+    build: ..
+    image: dubstick:latest
+    container_name: dubstick
+    restart: unless-stopped
+    environment:
+      - TZ=${TZ}
+      - DISCOGS_TOKEN=${DISCOGS_TOKEN}
+    expose:
+      - "8000"
+    volumes:
+      - dubstick_data:/data
+      # BlueZ lives on the host; bleak reaches it over the system bus.
+      - /run/dbus:/run/dbus:ro
+      # Mount more folders below /music if needed; they're all indexed.
+      - ${DUBSTICK_MUSIC_DIR}:/music:ro
+    security_opt:
+      # docker-default plus D-Bus to org.bluez; see deploy/apparmor/dubstick-ble.
+      - apparmor=dubstick-ble
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.dubstick.rule=Host(`${DUBSTICK_HOST}`)"
+      - "traefik.http.routers.dubstick.entrypoints=websecure"
+      - "traefik.http.routers.dubstick.tls=true"
+      - "traefik.http.routers.dubstick.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.dubstick.middlewares=authelia"
+      - "traefik.http.services.dubstick.loadbalancer.server.port=8000"
+      # The backup container stops this one while it snapshots the database.
+      - "docker-volume-backup.stop-during-backup=true"
+
+volumes:
+  dubstick_data:
