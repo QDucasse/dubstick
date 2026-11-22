@@ -1,0 +1,22 @@
+{% if message %}<div class="flash">{{ message }}</div>{% endif %}
+{% if results %}
+<div class="card">
+  <p class="small muted" style="margin-top:0">{{ results|length }} pressing{{ "s" if results|length > 1 }} — pick yours:</p>
+  <ul class="plain results">
+    {% for r in results %}
+    <li>
+      <img src="{{ r.thumb }}" alt="" loading="lazy">
+      <div class="meta">
+        <div class="ellipsis">{{ r.title }}</div>
+        <div class="small muted ellipsis">
+          {{ r.label }} {{ r.catno }} · {{ r.year or "?" }} · {{ r.country or "?" }} · {{ r.formats|join(", ") }}
+        </div>
+      </div>
+      <button class="small {{ 'primary' if r.is_vinyl }}"
+              hx-post="/queue/{{ r.id }}" hx-target="#results"
+              hx-vals='{{ {"title": r.title, "thumb": r.thumb}|tojson }}'>Pick</button>
+    </li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}

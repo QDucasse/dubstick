@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}{{ release.artist }} — {{ release.title }} · dubstick{% endblock %}
+{% block content %}
+{# Outside the live-refreshed block, so messages survive the refresh they trigger. #}
+<div id="track-result" style="position:sticky; top:52px; z-index:5"></div>
+<div id="record-body"
+     hx-get="/records/{{ release.id }}/body"
+     hx-trigger="sse:release-{{ release.id }}, record-changed from:body"
+     hx-swap="innerHTML">
+  {% include "partials/record_body.html" %}
+</div>
+<script src="{{ url_for('static', path='record.js') }}"></script>
+{% endblock %}

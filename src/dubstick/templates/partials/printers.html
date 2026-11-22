@@ -1,0 +1,12 @@
+{% if error %}<div class="flash error">{{ error }}</div>{% endif %}
+{% if printers %}
+<ul class="plain results" style="margin-top:10px">
+  {% for p in printers %}
+  <li>
+    <div class="meta"><b>{{ p.name or "unnamed" }}</b> <span class="mono small muted">{{ p.address }}</span>
+      {% if p.rssi %}<span class="small muted"> · {{ p.rssi }} dBm</span>{% endif %}</div>
+    <button class="small primary" hx-post="/settings/printer/select" hx-vals='{{ {"address": p.address}|tojson }}' hx-target="#printers">Use</button>
+  </li>
+  {% endfor %}
+</ul>
+{% endif %}

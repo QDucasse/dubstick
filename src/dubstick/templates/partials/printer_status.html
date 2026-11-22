@@ -1,0 +1,14 @@
+{% if not configured %}
+  <a class="button small" href="/settings">🖨 set up</a>
+{% elif not report.label %}
+  <button class="small" hx-get="/printer/status" hx-target="this" hx-swap="outerHTML" title="{{ report.error }}">
+    🖨 <span style="color:var(--bad)">unreachable</span>
+  </button>
+{% else %}
+  <button class="small" hx-get="/printer/status" hx-target="this" hx-swap="outerHTML" title="Refresh">
+    🖨
+    <span style="color:{{ 'var(--ok)' if report.label.ready else 'var(--warn)' }}">{{ report.label.state.message }}</span>
+    <span class="hide-mobile muted">· {{ report.label.roll }}</span>
+    {% if report.battery %}<span class="muted">· {{ report.battery.percent }}%{{ "⚡" if report.battery.charging }}</span>{% endif %}
+  </button>
+{% endif %}

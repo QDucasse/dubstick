@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block content %}
+{% if not has_token %}
+  <div class="flash error">DISCOGS_TOKEN is not set: Discogs search will fail.</div>
+{% endif %}
+
+<div class="card">
+  <form class="search" id="search-form" hx-post="/search" hx-target="#results" hx-indicator="#search-spinner">
+    <label>
+      Barcode
+      <span class="row">
+        <input type="text" name="barcode" id="barcode" inputmode="numeric" autocomplete="off" placeholder="scan or type">
+        <button type="button" id="camera-toggle">📷 Scan</button>
+      </span>
+    </label>
+    <div id="camera"><video id="camera-video" playsinline muted></video>
+      <p class="small muted" id="camera-status">Point the camera at the barcode.</p>
+    </div>
+
+    <label>
+      Catalog number
+      <input type="text" name="catno" autocomplete="off" autocapitalize="characters" placeholder="e.g. SK032">
+    </label>
+
+    <label>
+      Free text
+      <input type="search" name="query" autocomplete="off" placeholder="artist, title, label…">
+    </label>
+
+    <div class="row">
+      <button class="primary" type="submit">Search Discogs</button>
+      <span class="spinner" id="search-spinner"></span>
+    </div>
+  </form>
+</div>
+
+<div id="results"></div>
+
+<h2>To print</h2>
+<div class="card" id="queue" hx-get="/queue" hx-trigger="sse:release, queued from:body" hx-swap="innerHTML">
+  {% include "partials/queue.html" %}
+</div>
+
+<script type="module" src="{{ url_for('static', path='scan.js') }}"></script>
+{% endblock %}

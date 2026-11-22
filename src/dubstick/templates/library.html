@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Library · dubstick{% endblock %}
+{% block content %}
+<h1>Library</h1>
+
+<form class="card" hx-get="/library" hx-target="#library-results" hx-push-url="true"
+      hx-trigger="input changed delay:300ms from:input, change">
+  <div class="tabs">
+    {% set total = counts.values()|sum %}
+    <label><input type="radio" name="status" value="" {{ "checked" if not status }} hidden>
+      <span class="button small {{ 'active' if not status }}">all {{ total }}</span></label>
+    {% for s in ("needs_review", "failed", "analyzing", "queued", "ready") %}
+      {% if counts.get(s) %}
+      <label><input type="radio" name="status" value="{{ s }}" {{ "checked" if status == s }} hidden>
+        <span class="button small {{ 'active' if status == s }}">{{ status_labels[s] }} {{ counts[s] }}</span></label>
+      {% endif %}
+    {% endfor %}
+  </div>
+  <div class="filters">
+    <label>Text<input type="search" name="q" value="{{ q }}" placeholder="artist, title, catno"></label>
+    <label>BPM from<input type="number" name="bpm_min" value="{{ bpm_min }}" inputmode="numeric" min="0" max="400"></label>
+    <label>BPM to<input type="number" name="bpm_max" value="{{ bpm_max }}" inputmode="numeric" min="0" max="400"></label>
+    <label>Key<input type="text" name="key" value="{{ key }}" placeholder="8A or Am" autocapitalize="characters"></label>
+    <label class="row" style="color:inherit"><input type="checkbox" name="compatible" value="true" {{ "checked" if compatible }}> compatible keys</label>
+  </div>
+</form>
+
+<div id="library-results">
+  {% include "partials/library_results.html" %}
+</div>
+
+<script>
+  // Status tabs are radios styled as buttons; keep the highlight in sync.
+  document.addEventListener("change", (event) => {
+    if (event.target.name !== "status") return;
+    document.querySelectorAll(".tabs .button").forEach((b) => b.classList.remove("active"));
+    event.target.nextElementSibling.classList.add("active");
+  });
+</script>
+{% endblock %}

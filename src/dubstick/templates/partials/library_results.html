@@ -1,0 +1,46 @@
+{% if key_error %}<div class="flash error">“{{ key }}” is not a key. Use Camelot (8A) or a key name (Am, F#).</div>{% endif %}
+
+{% if track_search %}
+  <div class="card">
+    <p class="small muted" style="margin-top:0">
+      {{ tracks|length }} track{{ "s" if tracks|length != 1 }}
+      {% if keys %} in {{ keys|join(", ") }}{% endif %}
+    </p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>BPM</th><th>Key</th><th>Track</th><th>Record</th></tr></thead>
+        <tbody>
+          {% for t in tracks %}
+          <tr>
+            <td class="mono">{{ t.bpm|bpm }}</td>
+            <td class="mono">{{ t.camelot or "–" }}</td>
+            <td><b>{{ t.position }}</b> {{ t.title }}<div class="small muted">{{ t.artists }}</div></td>
+            <td><a href="/records/{{ t.record_id }}">{{ t.release_artist }} — {{ t.release_title }}</a>
+              <div class="small muted">{{ t.catno }}</div></td>
+          </tr>
+          {% else %}
+          <tr><td colspan="4" class="muted">No track matches.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% else %}
+  <div class="card">
+    <ul class="plain releases">
+      {% for r in releases %}
+      <li>
+        <img src="{{ r.thumb_url }}" alt="" loading="lazy">
+        <div class="meta">
+          <a class="ellipsis" style="display:block" href="/records/{{ r.id }}">{{ r.artist or "…" }} — {{ r.title }}</a>
+          <div class="small muted ellipsis">{{ r.label }} {{ r.catno }} · {{ r.track_count }} tracks</div>
+        </div>
+        {% if r.printed_at %}<span class="badge" title="printed {{ r.printed_at }} UTC">🖨</span>{% endif %}
+        <span class="badge {{ r.status }}">{{ status_labels[r.status] }}</span>
+      </li>
+      {% else %}
+      <li class="muted">Nothing here yet.</li>
+      {% endfor %}
+    </ul>
+  </div>
+{% endif %}

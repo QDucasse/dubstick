@@ -1,0 +1,134 @@
+{% set busy = release.status in ("queued", "analyzing") %}
+<div class="card release-head">
+  {% if release.thumb_url %}<img src="{{ release.thumb_url }}" alt="">{% endif %}
+  <div style="flex:1; min-width:0">
+    <h1 style="margin:0">{{ release.artist or "…" }} — {{ release.title or "fetching…" }}</h1>
+    <div class="muted small">
+      {{ release.label }} {{ release.catno }}
+      {% if release.year %} · {{ release.year }}{% endif %}
+      {% if release.country %} · {{ release.country }}{% endif %}
+      {% if release.format %} · {{ release.format }}{% endif %}
+    </div>
+    <div class="row" style="margin-top:8px">
+      <span class="badge {{ release.status }}">{{ status_labels[release.status] }}</span>
+      {% if busy and release.progress %}<span class="small muted">{{ release.progress }}</span>{% endif %}
+      <a class="small" href="https://www.discogs.com/release/{{ release.discogs_release_id }}" rel="noopener">Discogs ↗</a>
+    </div>
+    {% if release.error %}<div class="flash error small">{{ release.error }}</div>{% endif %}
+    {% if release.local_album %}<div class="small muted ellipsis">Local files: {{ release.local_album }}</div>{% endif %}
+  </div>
+</div>
+
+<div class="card">
+  <div class="row">
+    <h2 style="margin:0">Label</h2>
+    <span class="small muted">{{ settings.roll_width_mm }} × {{ settings.roll_length_mm }} mm{% if pages > 1 %} · {{ pages }} labels{% endif %}</span>
+    <span class="spacer"></span>
+    {% if release.status == "needs_review" %}
+      <span class="small muted">Review the flagged tracks to print</span>
+    {% elif release.printed_at %}
+      <span class="small muted">printed {{ release.printed_at[:16] }} UTC</span>
+    {% endif %}
+    <span class="spinner" id="print-spinner"></span>
+    <button class="primary" hx-post="/records/{{ release.id }}/print" hx-target="#print-result"
+            hx-indicator="#print-spinner" hx-disabled-elt="this"
+            {{ "disabled" if release.status != "ready" }}>🖨 {{ "Print again" if release.printed_at else "Print" }}</button>
+  </div>
+  <div id="print-result"></div>
+  <div class="labels" style="margin-top:10px">
+    {% for page in range(pages) %}
+      {# The cache-buster changes with every refresh of this block. #}
+      <img src="/records/{{ release.id }}/label/{{ page }}.png?v={{ range(100000)|random }}" alt="Label preview {{ page + 1 }}">
+    {% endfor %}
+  </div>
+</div>
+
+<div class="card">
+  <div class="row">
+    <h2 style="margin:0">Tracks</h2>
+    <span class="spacer"></span>
+    <button class="small" hx-post="/records/{{ release.id }}/reanalyze" {{ "disabled" if busy }}>↻ Re-analyse</button>
+  </div>
+  <p class="small muted" style="margin:4px 0 0">
+    🎙 records the track through your phone while it plays: set the pitch fader to 0 first,
+    and hold the phone near a speaker for about 30 seconds.
+  </p>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Pos</th><th>Track</th><th>Sources</th><th>Label value</th></tr>
+      </thead>
+      <tbody>
+        {% for t in tracks %}
+        <tr>
+          <td class="pos">{{ t.position }}</td>
+          <td>
+            <div>{{ t.title }}</div>
+            <div class="small muted">
+              {% if t.artists != release.artist %}{{ t.artists }} · {% endif %}
+              {% if t.duration_s %}{{ t.duration_s // 60 }}:{{ "%02d"|format(t.duration_s % 60) }}{% endif %}
+            </div>
+            {% if t.audio %}<div class="small muted">from {{ source_labels[t.audio] }}</div>{% endif %}
+            {% if t.note %}<div class="small" style="color:var(--warn)">{{ t.note }}</div>{% endif %}
+          </td>
+          <td>
+            <div class="sources">
+              {% for source in ("essentia_local", "essentia_recording", "essentia_youtube", "essentia_deezer") %}
+                {% set op = t.opinions.get(source) %}
+                {% if op %}
+                <button class="small" title="Use this value" hx-post="/tracks/{{ t.id }}/pick/{{ source }}">
+                  <span class="mono">{{ op.label_bpm|bpm }} {{ op.camelot or "–" }}</span>
+                  {% if op.fold %}
+                    <span class="badge" title="Measured {{ op.bpm|bpm }} BPM: half or double time, folded into your BPM range">{{ op.fold }}</span>
+                  {% endif %}
+                  <span class="muted">{{ source_labels[source] }}</span>
+                </button>
+                {% endif %}
+              {% endfor %}
+              {% if t.file_tag %}
+                <span class="muted">file tag: {{ t.file_tag.bpm|bpm }} BPM</span>
+              {% endif %}
+              {% if not t.opinions and not busy %}<span class="muted">nothing found</span>{% endif %}
+              {% if not busy %}
+                <div class="row">
+                  {# The recorder script drives these two; see static/record.js. #}
+                  <button class="small" type="button" data-record="{{ t.id }}">🎙 Record</button>
+                  <label class="button small">⤒ File
+                    <input type="file" accept="audio/*,video/*" data-upload="{{ t.id }}" hidden>
+                  </label>
+                  {% if not t.opinions.get("essentia_local") %}
+                  <button class="small" hx-post="/tracks/{{ t.id }}/youtube" hx-target="#track-result"
+                          hx-disabled-elt="this" hx-indicator="find .spinner">
+                    ↻ YouTube <span class="spinner"></span>
+                  </button>
+                  {% endif %}
+                </div>
+              {% endif %}
+            </div>
+          </td>
+          <td class="final">
+            <form hx-post="/tracks/{{ t.id }}" hx-trigger="change" hx-target="#track-result">
+              <input type="text" name="bpm" inputmode="decimal" value="{{ t.final_bpm|bpm if t.final_bpm is not none else '' }}" placeholder="BPM" aria-label="BPM">
+              <input type="text" name="key" value="{{ t.final_key or '' }}" placeholder="key" aria-label="Camelot key" autocapitalize="characters">
+            </form>
+            <div class="row small" style="margin-top:4px">
+              {% if t.origin == "user" %}
+                <span class="badge user">edited</span>
+                <button class="small" hx-post="/tracks/{{ t.id }}/reset" title="Back to the automatic value">undo</button>
+              {% elif t.agreement %}
+                <span class="badge {{ t.agreement }}">{{ agreement_labels[t.agreement] }}</span>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="4" class="muted">{{ "Fetching tracklist…" if busy else "No tracks." }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<form method="post" action="/records/{{ release.id }}/delete" onsubmit="return confirm('Remove this record from the library?')">
+  <button class="small danger" type="submit">Remove from library</button>
+</form>

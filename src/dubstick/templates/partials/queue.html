@@ -1,0 +1,17 @@
+{% if queue %}
+<ul class="plain queue">
+  {% for r in queue %}
+  <li>
+    <div class="meta">
+      <a href="/records/{{ r.id }}" class="ellipsis" style="display:block">
+        {{ r.artist or "…" }} — {{ r.title or "fetching…" }}
+      </a>
+      <span class="small muted">{{ r.catno }}{% if r.status == "analyzing" and r.progress %} · {{ r.progress }}{% endif %}</span>
+    </div>
+    <span class="badge {{ r.status }}">{{ status_labels[r.status] }}</span>
+  </li>
+  {% endfor %}
+</ul>
+{% else %}
+<p class="muted small">Every label is printed. Scan a record to start.</p>
+{% endif %}

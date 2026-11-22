@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Settings · dubstick{% endblock %}
+{% block content %}
+<h1>Settings</h1>
+
+<div class="card">
+  <h2 style="margin-top:0">Printer</h2>
+  <dl class="kv">
+    <dt>Address</dt><dd class="mono">{{ settings.printer_address or "none selected" }}</dd>
+    <dt>Status</dt>
+    <dd id="settings-printer-status">
+      <button class="small" hx-get="/printer/status" hx-target="#settings-printer-status">Check now</button>
+    </dd>
+  </dl>
+  <div class="row" style="margin-top:10px">
+    <button hx-post="/settings/printer/scan" hx-target="#printers" hx-indicator="#scan-spinner" hx-disabled-elt="this">
+      Scan for printers
+    </button>
+    <span class="spinner" id="scan-spinner"></span>
+  </div>
+  <div id="printers"></div>
+</div>
+
+<div class="card">
+  <h2 style="margin-top:0">Printing and analysis</h2>
+  <form class="settings-form" hx-post="/settings" hx-target="#settings-result">
+    <label>Density (1–15)<input type="number" name="density" min="1" max="15" value="{{ settings.density }}"></label>
+    <label>Label gap (mm)<input type="number" name="gap_mm" step="0.5" value="{{ settings.gap_mm }}"></label>
+    <label>Smallest text height (mm)<input type="number" name="min_cap_mm" step="0.1" value="{{ settings.min_cap_mm }}"></label>
+    <label>BPM range from<input type="number" name="bpm_min" value="{{ settings.bpm_min|int }}"></label>
+    <label>BPM range to<input type="number" name="bpm_max" value="{{ settings.bpm_max|int }}"></label>
+    <div class="row"><button class="primary" type="submit">Save</button></div>
+  </form>
+  <p class="small muted">
+    Tempos are folded into the BPM range (a 70 BPM reading counts as 140), so the range must span a factor of two.
+    Text smaller than the minimum height spills onto an extra label.
+  </p>
+  <div id="settings-result"></div>
+</div>
+
+<div class="card">
+  <h2 style="margin-top:0">Local music library</h2>
+  <dl class="kv">
+    <dt>Folders</dt><dd>{% for root in music_roots %}<div class="mono small">{{ root }}</div>{% else %}none (set DUBSTICK_MUSIC){% endfor %}</dd>
+    <dt>Indexed</dt><dd>{{ library.files }} files, {{ library.albums }} albums, {{ library.tagged }} with MusicBrainz IDs</dd>
+  </dl>
+  <div class="row" style="margin-top:10px">
+    <button hx-post="/settings/reindex" hx-target="#reindex-result" hx-indicator="#reindex-spinner"
+            hx-disabled-elt="this" {{ "disabled" if indexing }}>Re-index library</button>
+    <span class="spinner {{ 'htmx-request' if indexing }}" id="reindex-spinner"></span>
+  </div>
+  <div id="reindex-result"></div>
+</div>
+
+<div class="card">
+  <h2 style="margin-top:0">Credentials</h2>
+  <dl class="kv">
+    <dt>Discogs token</dt><dd>{{ "✓ set" if has_discogs else "✗ missing (DISCOGS_TOKEN)" }}</dd>
+  </dl>
+</div>
+{% endblock %}
